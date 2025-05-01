@@ -1,3 +1,4 @@
+//includes
 #include<ctype.h>
 #include<errno.h>
 #include<stdio.h>
@@ -6,12 +7,20 @@
 #include<termios.h>
 #include<unistd.h>
 
+//defines
+
 #define CTRL_KEY(k) ((k) &0x1f)
+
+//data
+
 struct editor_config
 {
 	struct termios orig_termios;
 }
+
 editor_config e;
+
+//terminal
 
 void die(const char s)
 {
@@ -52,12 +61,6 @@ void enableRawMode()
 	}
 }
 
-void editorRefreshScreen()
-{
-	write(STDOUT_FILENO,"\x1b[2J",4);
-	write(STDOUT_FILENO,"\x1b[H",3);
-}
-
 char editorReadKey()
 {
 	int nread;
@@ -73,6 +76,15 @@ char editorReadKey()
 	return c;
 }
 
+void editorRefreshScreen()
+{
+	write(STDOUT_FILENO,"\x1b[2J",4);
+	write(STDOUT_FILENO,"\x1b[H",3);
+}
+
+
+//input
+
 void editorProcessKey()
 {
 	char c = editorReadKey();
@@ -84,6 +96,8 @@ void editorProcessKey()
 									break;
 		}
 }
+
+//init
 
 int main()
 {
