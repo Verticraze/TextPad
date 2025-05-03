@@ -65,7 +65,7 @@ char editorReadKey()
 {
 	int nread;
 	char c;
-	while(()!=1)
+	while((nread=read(STDIN_FILNO,&c,1))!=1)
 	{
 		if ( nread == -1 && errno!=EAGAIN)
 		{
