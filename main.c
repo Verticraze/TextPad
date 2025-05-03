@@ -38,8 +38,9 @@ void enableRawMode()
 		die("tcgetattr");
 	}
 	atexit(disableRawMode);
-	
+
 	struct termios raw=E.orig_termios;
+
 	raw.c_iflag&=~(BRKINT|ICRNL|INPCK|ISTRIP|IXON);
 	raw.c_oflag&=OPOST;
 	raw.c_cflag|=(CS8);
