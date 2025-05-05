@@ -10,10 +10,19 @@
 #include<string.h>
 #define CTRL_KEY(k) ((k)&0x1f)
 
+enum editorKey
+{
+	ARROW_UP=1000,
+	ARROW_DOWN,
+	ARROW_RIGHT,
+	ARROW_LEFT
+};
+
 //data
 
 struct editorConfig
 	{
+		int cx,cy; 
 		int screenrows;
 		int screencols;
 		struct termios orig_termios;
@@ -61,7 +70,7 @@ void enableRawMode()
 			}
 	}
 
-char editorReadKey()
+int editorReadKey()
 	{
 			int nread;
 			char c;
@@ -72,6 +81,39 @@ char editorReadKey()
 							die("read");
 						}
 				}
+			
+			if(c=='\x1b')
+				{
+					char seq[3];
+					
+					if(read(STDIN_FILENO,&seq[0],1)!=1)
+					{
+							return '\x1b';
+					}
+					
+					if(read(STDIN_FILENO,&seq[1],1)!=1)
+					{
+							return '\x1b';
+					}
+					
+					if(seq[0]=='[')
+					{
+						switch(seq[1])
+						{
+							case 'A':return ARROW_UP;
+							case 'B':return ARROW_DOWN;
+							case 'C':return ARROW_LEFT;
+							case 'D':return ARROW_RIGHT;
+							
+						}
+					}
+					return '\x1b';
+				}
+			else
+				{
+					return c;
+				}
+			
 			return c;
 	}
 	
@@ -161,6 +203,7 @@ void abFree(struct abuf *ab)
 void editordrawRows(struct abuf *ab)
 	{	
 		int y;
+
 		for(y=0;y<E.screenrows;y++)
 			{
 				if(y==E.screenrows/3)
@@ -172,11 +215,22 @@ void editordrawRows(struct abuf *ab)
 							{
 								welcomelen=E.screencols;
 							}
+						int padding=(E.screencols-welcomelen)/2;
+						if(padding)
+							{
+								abAppend(ab,"~",1);
+								padding--;
+							}
+						while(padding--)
+							{
+								abAppend(ab," ",1);
+							}	
 						abAppend(ab,welcome,welcomelen);
 					}		
 				else	
 					{
 						abAppend(ab,"~",1);
+						
 					}
 				abAppend(ab,"\x1b[K",3);
 				if(y<E.screenrows-1)
@@ -190,34 +244,58 @@ void editordrawRows(struct abuf *ab)
 void editorRefreshScreen()
 	{
 		struct abuf ab=ABUF_INIT;
+		
 		abAppend(&ab,"\x1b[?25l",6);
 		abAppend(&ab,"\x1b[H",3);
+		
 		editordrawRows(&ab);
-		abAppend(&ab,"\x1b[H",3);
+		
+		char buf[32];
+		snprintf(buf,sizeof(buf),"\x1b[%d;%dH",E.cy+1,E.cx+1);
+		abAppend(&ab,buf,strlen(buf));
+		
+		
 		abAppend(&ab,"\x1b[?25h",6);
+		
 		write(STDOUT_FILENO,ab.b,ab.len);
 		abFree(&ab);
 	}
 	
 //input
-void editorMoveCursor()
-{
-	switch(key)
+
+void editorMoveCursor(int key)
 	{
-		case 'i':	E.cy--;
-					break;
-		case 'j':	E.cx--;
-					break;
-		case 'k':	E.cy++;
-					break;
-		case 'l':	E.cx++;
-					break;				
+		switch(key)
+		{
+			case ARROW_UP:	if(E.cy!=0) 
+								{	
+									E.cy--;
+								}
+							break;
+
+			case ARROW_LEFT:	if(E.cx!=E.screencols-1) 
+								{	
+									E.cx++;
+								}
+							break;
+
+			case ARROW_DOWN:	if(E.cy!=E.screenrows-1) 
+							{
+								E.cy++;
+							}
+							break;
+			case ARROW_RIGHT: 
+							if(E.cx!=0)
+							{
+								E.cx--;
+							}			
+						break;		
+		}
 	}
-}
 
 void editorProcessKeyPress()
 	{
-		char c =editorReadKey();
+		int c = editorReadKey();
 	
 		switch(c)
 			{
@@ -225,13 +303,21 @@ void editorProcessKeyPress()
 									write(STDOUT_FILENO,"\x1b[H",3);
 									exit(0);					
 									break;
+				case ARROW_UP:
+				case ARROW_LEFT:
+				case ARROW_DOWN:
+				case ARROW_RIGHT:
+					editorMoveCursor(c);
+					break;		
 			}
 	}
 
-//init
+
 
 void initEditor()
 	{
+		E.cx=0;
+		E.cy=0;
 		if(getWindowSize(&E.screenrows,&E.screencols)==-1)
 			{
 				die("getWindowSize");
@@ -246,7 +332,8 @@ int main()
 			{
 				editorRefreshScreen();
 				editorProcessKeyPress();
-		}
+				
+			}	
 
 		return 0;
 	}
