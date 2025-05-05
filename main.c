@@ -200,6 +200,20 @@ void editorRefreshScreen()
 	}
 	
 //input
+void editorMoveCursor()
+{
+	switch(key)
+	{
+		case 'i':	E.cy--;
+					break;
+		case 'j':	E.cx--;
+					break;
+		case 'k':	E.cy++;
+					break;
+		case 'l':	E.cx++;
+					break;				
+	}
+}
 
 void editorProcessKeyPress()
 	{
@@ -212,7 +226,7 @@ void editorProcessKeyPress()
 									exit(0);					
 									break;
 			}
-}
+	}
 
 //init
 
