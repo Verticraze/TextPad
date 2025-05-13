@@ -18,8 +18,8 @@
 #define CTRL_KEY(k) ((k) & 0x1f)
 
 // enum
-
 enum editorKey
+
 {
     ARROW_UP = 1000,
 
@@ -56,6 +56,8 @@ struct editorConfig
     int cx, cy;
 	
 	int rowoff;
+	
+	int coloff;
 
     int screenrows;
 
@@ -428,9 +430,20 @@ void editorScroll()
 	{
 		E.rowoff=E.cy;
 	}
+	
 	if(E.cy >= E.rowoff + E.screenrows)
 	{
 		E.rowoff = E.cy - E.screenrows + 1;
+	}
+	
+	if(E.cx < E.coloff)
+	{
+		E.coloff = E.cx;
+	}
+		
+	if(E.cx >= E.coloff + E.screencols)
+	{
+		E.coloff = E.cx - E.screencols + 1;
 	}
 }
 
@@ -491,14 +504,19 @@ void editordrawRows(struct abuf *ab)
 		} 
 		else
 		{
-			int len = E.row[filerows].size;
+			int len = E.row[filerows].size - E.coloff;
+			
+			if(len<0)
+			{
+				len=0;
+			}
 			
 			if(len > E.screencols)
 			{
 				len = E.screencols;
 			}
 			
-			abAppend(ab, E.row[filerows].chars,len);
+			abAppend(ab, &E.row[filerows].chars[E.coloff],len);
 				
 		}
 
@@ -529,7 +547,7 @@ void editorRefreshScreen()
 
     char buf[32];
 
-    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", E.cy + 1, E.cx + 1);
+    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowoff) + 1, (E.cx - E.coloff) + 1);
 
     abAppend(&ab, buf, strlen(buf));
 
@@ -545,8 +563,9 @@ void editorRefreshScreen()
 
 void editorMoveCursor(int key)
 {
-
-    switch (key)
+	erow *row = (E.cy > E.numrows) ? NULL : &E.row[E.cy];
+   
+	switch (key)
     {
 
         case ARROW_UP:
@@ -571,10 +590,10 @@ void editorMoveCursor(int key)
             break;
 
         case ARROW_RIGHT:
-            if (E.cx != E.screencols - 1)
-            {
-                E.cx++;
-            }
+			if(row && E.cx< row -> size)
+			{
+				E.cx++;
+			}
             break;
 
     }
@@ -644,6 +663,8 @@ void initEditor()
     E.cy = 0;
 	
 	E.rowoff=0;
+	
+	E.coloff=0;
 	
 	E.numrows=0;
 	
