@@ -18,8 +18,8 @@
 #define CTRL_KEY(k) ((k) & 0x1f)
 
 // enum
-
 enum editorKey
+
 {
     ARROW_UP = 1000,
 
@@ -56,6 +56,8 @@ struct editorConfig
     int cx, cy;
 	
 	int rowoff;
+	
+	int coloff;
 
     int screenrows;
 
@@ -529,7 +531,7 @@ void editorRefreshScreen()
 
     char buf[32];
 
-    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", E.cy + 1, E.cx + 1);
+    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowoff) + 1, E.cx + 1);
 
     abAppend(&ab, buf, strlen(buf));
 
@@ -644,6 +646,8 @@ void initEditor()
     E.cy = 0;
 	
 	E.rowoff=0;
+	
+	E.coloff=0;
 	
 	E.numrows=0;
 	
