@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include <string.h>
 
+#define VCPAD_TAB_STOP 8
 #define CTRL_KEY(k) ((k) & 0x1f)
 
 // enum
@@ -47,7 +48,11 @@ typedef struct erow
 {
 	int size;
 	
+	int rsize;
+	
 	char *chars;
+
+	char *render;
 	
 }erow;
 
@@ -335,19 +340,70 @@ int getWindowSize(int *rows, int *cols)
 
 }
 
+void editorUpdateRow(erow *row)
+{
+	int tabs = 0;
+	
+	int j;
+
+
+	for(j = 0 ; j < row -> size ; j++)
+	{
+		if(row -> chars[j] == '\t')
+		{
+			tabs++;
+		}
+	}
+
+	
+	free(row->render);
+
+	row->render=malloc(row->size + tabs * (VCPAD_TAB_STOP - 1) + 1);
+	
+	int idx = 0;
+	
+	for(j = 0 ; j < row -> size ; j++)
+	{
+		if(row -> chars[j] == '\t')
+		{
+			row -> render[idx++] = ' ';
+			
+			while(idx % VCPAD_TAB_STOP != 0)
+			{
+					row->render[idx++]=' ';
+			}
+		}
+		else
+		{
+			row -> render[idx++] = row -> chars[j];
+		}
+		
+	}
+	
+	row -> render[idx] = '\0';
+
+	row -> rsize = idx;
+}
+
 void editorAppendRow(char *s, size_t len)
 {
 	E.row = realloc(E.row,sizeof(erow)*(E.numrows+1));
 	
-	int pos=E.numrows;
+	int pos = E.numrows;
 	
-	E.row[pos].size=len;
+	E.row[pos].size = len;
 	
-	E.row[pos].chars=malloc(len+1);
+	E.row[pos].chars = malloc(len+1);
 	
 	memcpy(E.row[pos].chars,s,len);
 	
-	E.row[pos].chars[len]='\0';
+	E.row[pos].chars[len] = '\0';
+	
+	E.row[pos].rsize = 0;
+	
+	E.row[pos].render = NULL;
+	
+	editorUpdateRow(&E.row[pos]);
 	
 	E.numrows++;
 }
@@ -504,7 +560,7 @@ void editordrawRows(struct abuf *ab)
 		} 
 		else
 		{
-			int len = E.row[filerows].size - E.coloff;
+			int len = E.row[filerows].rsize - E.coloff;
 			
 			if(len<0)
 			{
@@ -516,7 +572,7 @@ void editordrawRows(struct abuf *ab)
 				len = E.screencols;
 			}
 			
-			abAppend(ab, &E.row[filerows].chars[E.coloff],len);
+			abAppend(ab, &E.row[filerows].render[E.coloff],len);
 				
 		}
 
