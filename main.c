@@ -3,7 +3,7 @@
 #define _GNU_SOURCE
 
 #define VCPAD_TAB_STOP 8
-#define VCPAD_QUIT_TIMES 3
+#define VCPAD_QUIT_TIMES 1
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define ABUF_INIT {NULL, 0}
 
@@ -566,7 +566,7 @@ void editorDrawStatusBar(struct abuf *ab)
 
 	char status[80], rowStatus[80];
 	
-	int len = snprintf(status,sizeof(status),"%.20s - %d lines ", E.filename ? E.filename : " No Name ", E.numrows, E.dirty ? "(modified)":" " );
+	int len = snprintf(status,sizeof(status),"%.20s - %d lines %s", E.filename ? E.filename : " No Name ", E.numrows, E.dirty ? "(modified)":" " );
 
 	int rowlen = snprintf(rowStatus, sizeof(rowStatus),"%d,%d", E.cy + 1,E.numrows);
 	
@@ -882,6 +882,40 @@ void editorMoveCursor(int key)
 	}
 }
 
+void editorRowDelChar(erow *row, int pos)
+{
+	if(pos < 0 ||pos >= row -> size)
+	{
+		return;
+	}
+	
+	memmove( &row -> chars[pos], &row -> chars[pos+1], row -> size - pos);
+	
+	row->size--;
+	
+	editorUpdateRow(row);
+	
+	E.dirty++;
+}
+
+void editorDelChar()
+{
+	if (E.cy == E.numrows)
+	{
+		return;
+	}
+	
+	erow *row = &E.row[E.cy];
+
+	if (E.cx > 0)
+	{
+		
+		editorRowDelChar(row,E.cx-1);
+	
+		E.cx--;
+	}
+}
+
 void editorRowInsert(erow *row,int at,int c)
 {
 	if(at < 0 || at > row -> size)
@@ -915,6 +949,8 @@ void editorInsertChar(int c)
 
 void editorProcessKeyPress()
 {
+	static int quitNum = VCPAD_QUIT_TIMES;
+	
     int c = editorReadKey();
 
     switch (c)
@@ -925,6 +961,15 @@ void editorProcessKeyPress()
 
         case CTRL_KEY('q'):
 		
+			if(E.dirty && quitNum > 0)
+			{
+				editorSetStatusMessage("WARNING!!! File has unsaved changes, Press CTRL-Q %d more times to quit",quitNum);
+			
+				quitNum--;
+				
+				return;
+			}
+
             write(STDOUT_FILENO, "\x1b[2J", 4);
 
             write(STDOUT_FILENO, "\x1b[H", 3);
@@ -938,7 +983,26 @@ void editorProcessKeyPress()
 			editorSave();
 			
 			break;
+		
+		case BACKSPACE:
 			
+			if(c == BACKSPACE)
+			{
+				editorDelChar();	
+			}
+			
+			break;
+		
+		case DEL_KEY:
+			
+			if(c == DEL_KEY)
+			{
+				editorMoveCursor(ARROW_RIGHT);
+				editorDelChar();
+			}
+			
+			break;
+		
 		case HOME_KEY:
 		
 			E.cx = 0;
@@ -952,15 +1016,9 @@ void editorProcessKeyPress()
 				E.cx = E.row[E.cy].size;
 			}
 			
-		case BACKSPACE:
-		case CTRL_KEY('h'):
-		case DEL_KEY:
-			
-			
 			break;
-		
-	
-        case PAGE_UP:
+        
+		case PAGE_UP:
         case PAGE_DOWN:
         {
 			if(c == PAGE_UP)
@@ -1008,7 +1066,8 @@ void editorProcessKeyPress()
 			
 			break;
     }
-
+	
+	quitNum = VCPAD_QUIT_TIMES;
 }
 
 
