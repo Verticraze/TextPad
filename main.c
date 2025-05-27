@@ -795,7 +795,7 @@ char *editorPrompt(char *prompt)
 	buffer[0] = '\0';
 	
 	
-	while()
+	while(1)
 	{
 		editorSetStatusMessage(prompt, buffer);
 		
@@ -804,7 +804,24 @@ char *editorPrompt(char *prompt)
 		
 		int c = editorReadKey();
 		
-		if(c == '\r')
+		if(c == DEL_KEY || c == BACKSPACE)
+		{
+			if(bufferLength != 0)
+			{
+				buffer[bufferLength] = '\0';
+			}
+		}
+		
+		else if(c =='\x1b')
+		{
+			editorSetStatusMessage("");
+			
+			free(buffer);
+			
+			return NULL;
+		}
+		
+		else if(c == '\r')
 		{
 			if(bufferLength != 0)
 			{
@@ -836,7 +853,14 @@ void editorSave()
 {
 	if (E.filename == NULL)
 	{	
-		E.filename = editorPrompt("Save as:%s") ;
+		E.filename = editorPrompt("Save as:%s (ESC to cancel)") ;
+		
+		if (E.filename == NULL)
+		{
+			editorSetStatusMessage("Save Aborted");
+			
+			return;
+		}
 	}
   
 	int len;
