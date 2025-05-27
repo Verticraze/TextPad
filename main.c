@@ -107,6 +107,9 @@ struct abuf // append buffer
 
 void editorSetStatusMessage(const char* fmt,...); //prototypes
 
+void editorRefreshScreen();
+
+char *editorPrompt(char *prompt);
 
 //Initial Main process
 //terminal
@@ -780,11 +783,60 @@ char *editorRowToStrings(int *buflen)
 	return buf;
 }
 
+char *editorPrompt(char *prompt)
+{
+	size_t bufferSize = 128;
+	
+	char *buffer = malloc (bufferSize);
+	
+	
+	size_t bufferLength = 0;
+	
+	buffer[0] = '\0';
+	
+	
+	while()
+	{
+		editorSetStatusMessage(prompt, buffer);
+		
+		editorRefreshScreen();
+		
+		
+		int c = editorReadKey();
+		
+		if(c == '\r')
+		{
+			if(bufferLength != 0)
+			{
+				editorSetStatusMessage("");
+				
+				return buffer;
+			}
+		}
+		
+		else if(!iscntrl(c) && c < 128)
+		{
+			if(bufferLength == bufferSize - 1)
+			{
+				bufferSize *= 2 ;
+				
+				buffer = realloc(buffer, bufferSize);
+			}
+			
+			buffer[bufferLength++] = c;
+			
+			buffer[bufferLength] = '\0';
+			
+		}
+	}
+	
+}
+
 void editorSave() 
 {
 	if (E.filename == NULL)
 	{	
-		return;
+		E.filename = editorPrompt("Save as:%s") ;
 	}
   
 	int len;
