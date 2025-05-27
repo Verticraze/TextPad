@@ -330,11 +330,16 @@ void editorUpdateRow(erow *row)
 	row -> rsize = idx;
 }
 
-void editorAppendRow(char *s, size_t len)
+void editorAppendRow(int pos, char *s, size_t len)
 {
-	E.row = realloc(E.row,sizeof(erow)*(E.numrows+1));
+	if(pos < 0 || pos > E.numrows)
+	{
+		return;
+	}
 	
-	int pos = E.numrows;
+	E.row = realloc(E.row , sizeof(erow) * (E.numrows + 1));
+	
+	memmove(&E.row[pos + 1], &E.row[pos], sizeof(erow) * (E.numrows - pos));
 	
 	E.row[pos].size = len;
 	
@@ -382,7 +387,7 @@ void editorOpen(char *filename)
 		{
 			linelen--;
 			
-			editorAppendRow(line,linelen);
+			editorAppendRow(E.numrows,line,linelen);
 		}
 	
 	}
@@ -898,9 +903,53 @@ void editorRowDelChar(erow *row, int pos)
 	E.dirty++;
 }
 
+void editorFreeRow(erow *row)
+{
+	free(row -> render);
+
+	free(row -> chars);
+}
+
+void editorRowAppendString(erow *row, char *s, size_t len)
+{
+	row -> chars = realloc(row -> chars, row -> size + len + 1);
+	
+	memcpy(&row -> chars[row -> size] , s , len);
+	
+	row -> size += len;
+	
+	row -> chars[row->size] = '\0';
+	
+	editorUpdateRow(row);
+	
+	E.dirty++;
+}
+
+void editorDelRow(int pos)
+{
+	if(pos < 0 || pos >= E.numrows)
+	{
+		return;
+	}
+	
+	editorFreeRow(&E.row[pos]);
+	
+	memmove(&E.row[pos], &E.row[pos + 1], sizeof(erow) * (E.numrows - pos - 1));
+	
+	E.numrows--;
+	
+	E.dirty++;
+	
+}
+
 void editorDelChar()
 {
 	if (E.cy == E.numrows)
+	{
+		return;
+	}
+	
+	if(E.cx == 0 && E.cy == 0)
 	{
 		return;
 	}
@@ -910,9 +959,20 @@ void editorDelChar()
 	if (E.cx > 0)
 	{
 		
-		editorRowDelChar(row,E.cx-1);
+		editorRowDelChar(row,E.cx - 1);
 	
 		E.cx--;
+	}
+	
+	else 
+	{
+		E.cx = E.row[E.cy-1].size;
+		
+		editorRowAppendString(&E.row[E.cy-1] ,row -> chars, row -> size);
+		
+		editorDelRow(E.cy);
+		
+		E.cy--;
 	}
 }
 
@@ -939,12 +999,40 @@ void editorInsertChar(int c)
 {
 	if(E.cy == E.numrows)
 	{
-		editorAppendRow("",0);
+		editorAppendRow(E.numrows, "", 0);
 	}
 	
 	editorRowInsert(&E.row[E.cy], E.cx, c);
 	
 	E.cx++;
+}
+
+void AppendNewRow()
+{
+	if(E.cx  == 0)
+	{
+		editorAppendRow(E.cy,"",0);
+	}
+	
+	else
+	{
+		erow *row = &E.row[E.cy];
+		
+		editorAppendRow(E.cy + 1, &row -> chars[E.cx], row -> size - E.cx);
+		
+		row = &E.row[E.cy];
+		
+		row -> size = E.cx;
+		
+		row -> chars[row->size] = '\0';
+		
+		editorUpdateRow(row);
+	}
+	
+	E.cy++;
+	
+	E.cx = 0;
+
 }
 
 void editorProcessKeyPress()
@@ -956,8 +1044,10 @@ void editorProcessKeyPress()
     switch (c)
     {
 		case '\r':
-			
-			break;
+		
+		AppendNewRow();
+	
+		break;
 
         case CTRL_KEY('q'):
 		
@@ -998,6 +1088,7 @@ void editorProcessKeyPress()
 			if(c == DEL_KEY)
 			{
 				editorMoveCursor(ARROW_RIGHT);
+				
 				editorDelChar();
 			}
 			
