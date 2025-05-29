@@ -441,6 +441,31 @@ int editorRowCxToRx(erow *row, int cx)
 	return rx;
 }
 
+int editorRowRxToCx(erow *row,int rx)
+{
+	int curRx = 0;
+	
+	int cx;
+	
+	for(cx = 0; cx < row->size ; cx++)
+	{
+		if(row -> chars[cx] == '\t')
+		{
+			curRx+=(VCPAD_TAB_STOP - 1) - (curRx % VCPAD_TAB_STOP);
+		}
+	
+		curRx++;
+		
+		if(curRx > rx)
+		{
+			return cx;
+		}	
+	
+	}
+	
+	return cx;
+}
+
 void editorScroll()
 {
 	E.rx = 0;
@@ -808,7 +833,7 @@ char *editorPrompt(char *prompt)
 		{
 			if(bufferLength != 0)
 			{
-				buffer[bufferLength] = '\0';
+				buffer[--bufferLength] = '\0';
 			}
 		}
 		
@@ -1083,6 +1108,40 @@ void editorInsertChar(int c)
 	E.cx++;
 }
 
+void editorFind()
+{
+	char *query = editorPrompt(" Search %s (Escape to cancel) ");
+	
+	if(query == NULL)
+	{
+		return;
+	}
+	
+	int i;
+	
+	for(int i = 0; i < E.numrows ; i++)
+	{
+			erow *row = &E.row[i];
+			
+			char *match = strstr(row -> render, query);
+			
+			if(match)
+			{
+				E.cy = i;
+				
+				E.cx = editorRowRxToCx(row, match - row -> render);
+				
+				E.cx = match - row -> render;
+				
+				E.rowoff = E.numrows;
+				
+				break;
+			}
+	}
+	
+	free(query);
+}
+
 void AppendNewRow()
 {
 	if(E.cx  == 0)
@@ -1252,7 +1311,7 @@ int main(int argc, char *argv[])
 		editorOpen(argv[1]);
 	}
 
-	editorSetStatusMessage("HELLLLLLLLLLLLLLLLP");
+	editorSetStatusMessage("HELP: CTRL-Q : TO QUIT , CTRL-S TO SAVE");
 
     while (1)
     {
