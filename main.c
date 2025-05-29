@@ -1311,7 +1311,7 @@ int main(int argc, char *argv[])
 		editorOpen(argv[1]);
 	}
 
-	editorSetStatusMessage("HELLLLLLLLLLLLLLLLP");
+	editorSetStatusMessage("HELP: CTRL-Q : TO QUIT , CTRL-S TO SAVE");
 
     while (1)
     {
