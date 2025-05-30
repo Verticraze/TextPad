@@ -1209,6 +1209,12 @@ void editorProcessKeyPress()
 			
 			break;
 		
+		case CTRL_KEY('f'):
+			
+			editorFind();
+			
+			break;
+		
 		case BACKSPACE:
 			
 			if(c == BACKSPACE)
@@ -1311,7 +1317,7 @@ int main(int argc, char *argv[])
 		editorOpen(argv[1]);
 	}
 
-	editorSetStatusMessage("HELP: CTRL-Q : TO QUIT , CTRL-S TO SAVE");
+	editorSetStatusMessage("HELP: CTRL-Q : TO QUIT , CTRL-S TO SAVE, CTRL-F TO FIND");
 
     while (1)
     {
