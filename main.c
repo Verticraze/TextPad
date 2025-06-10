@@ -109,10 +109,10 @@ void editorSetStatusMessage(const char* fmt,...); //prototypes
 
 void editorRefreshScreen();
 
-char *editorPrompt(char *prompt);
+char *editorPrompt(char *prompt, void (*callback)(char*,int));
 
-//Initial Main process
-//terminal
+//Phase 1(RawMode)
+
 
 void die(const char *s) //Called upon occurence of error
 {
@@ -176,8 +176,7 @@ void enableRawMode()
 }
 
 
-//Second Main Process
-//init
+//Phase2(Initialization)
 
 int getCursorPosition(int *rows, int *cols) 
 {
@@ -226,28 +225,24 @@ int getWindowSize(int *rows, int *cols)
 
     if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0)
     {
-
         if (write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12) != 12)
         {
 
             return -1;
 
         }
-
+		
         return getCursorPosition(rows, cols);
-
     }
+	
     else
     {
-
         *cols = ws.ws_col;
 
         *rows = ws.ws_row;
 
         return 0;
-
     }
-
 }
 
 void initEditor() //initializes the attributes of the editor
@@ -287,8 +282,7 @@ void initEditor() //initializes the attributes of the editor
 }
 
 
-//Third Main Process
-//row operations
+//Phase3(RowHandling)
 
 void editorUpdateRow(erow *row)
 {
@@ -403,8 +397,7 @@ void editorOpen(char *filename)
 }
 
 
-//Fourth main process
-//status
+//Phase4(StatusBar)
 
 void editorSetStatusMessage(const char* fmt,...)
 {
@@ -420,8 +413,7 @@ void editorSetStatusMessage(const char* fmt,...)
 }
 
 
-//Fifth Main Process
-//output
+//Phase5(Handling Output)
 
 int editorRowCxToRx(erow *row, int cx)
 {
@@ -684,8 +676,7 @@ void editorRefreshScreen()
 }
 
 
-//Sixth Main Process
-//input
+//Phase6(Handling Input)
 
 int editorReadKey()
 {
@@ -808,7 +799,7 @@ char *editorRowToStrings(int *buflen)
 	return buf;
 }
 
-char *editorPrompt(char *prompt)
+char *editorPrompt(char *prompt,void (*callback)(char *,int))
 {
 	size_t bufferSize = 128;
 	
@@ -841,6 +832,11 @@ char *editorPrompt(char *prompt)
 		{
 			editorSetStatusMessage("");
 			
+			if(callback)
+			{
+				callback(buffer,c);
+			}
+			
 			free(buffer);
 			
 			return NULL;
@@ -851,6 +847,12 @@ char *editorPrompt(char *prompt)
 			if(bufferLength != 0)
 			{
 				editorSetStatusMessage("");
+				
+			if(callback)
+			{
+				callback(buffer,c);
+			}
+			
 				
 				return buffer;
 			}
@@ -870,6 +872,11 @@ char *editorPrompt(char *prompt)
 			buffer[bufferLength] = '\0';
 			
 		}
+		if(callback)
+		{
+			callback(buffer,c);
+		}
+			
 	}
 	
 }
@@ -878,7 +885,7 @@ void editorSave()
 {
 	if (E.filename == NULL)
 	{	
-		E.filename = editorPrompt("Save as:%s (ESC to cancel)") ;
+		E.filename = editorPrompt("Save as:%s (ESC to cancel)",NULL) ;
 		
 		if (E.filename == NULL)
 		{
@@ -1108,11 +1115,19 @@ void editorInsertChar(int c)
 	E.cx++;
 }
 
+void editorFindCallback(char *query,int key)
+{
+	if(key == '\r' || key == '\x1b')
+	{
+		return;
+	}
+}
+
 void editorFind()
 {
-	char *query = editorPrompt(" Search %s (Escape to cancel) ");
+	char *query = editorPrompt(" Search %s (Escape to cancel) ",editorFindCallback);
 	
-	if(query == NULL)
+	if(query)
 	{
 		return;
 	}
@@ -1303,7 +1318,7 @@ void editorProcessKeyPress()
 }
 
 
-//Main Loop
+//Driver Function
 
 int main(int argc, char *argv[])
 {
