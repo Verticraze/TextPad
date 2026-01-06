@@ -28,10 +28,7 @@ make
 ```
 ## Exiting the Editor
  Press Ctrl-Q to quit.
-<<<<<<< HEAD
-=======
 
->>>>>>> d512810 (Updated ReadME.md and Makefile)
 ## Credits
 
 Based on the text editor kilo by Salvatore Sanfilippo.
