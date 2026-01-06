@@ -13,14 +13,25 @@
 - A Unix-like terminal (Linux, macOS, WSL, etc.)
 ## Compilation
 ```bash
-gcc -o vctextpad vctextpad.c
+gcc -o main main.c
+```
+
+Or Simply run 
+``` bash
+
+make
+
 ```
 ## Running the Edit
 ```
-./vctextpad
+./main
 ```
 ## Exiting the Editor
  Press Ctrl-Q to quit.
+<<<<<<< HEAD
+=======
+
+>>>>>>> d512810 (Updated ReadME.md and Makefile)
 ## Credits
 
 Based on the text editor kilo by Salvatore Sanfilippo.

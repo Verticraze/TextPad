@@ -1,2 +1,4 @@
-main:main.c
-	$(CC) main.c -o main -Wall -Wextra pedantics -std=c99
+TARGET:
+	$(CC) -o main  main.c -Wall -Wextra -std=c99
+clean:
+	rm  main
